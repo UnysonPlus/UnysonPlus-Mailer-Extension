@@ -34,6 +34,7 @@
 
 					var vars = [
 						{name: 'action', value: 'fw_ext_mailer_test_connection'},
+						{name: '_nonce', value: (typeof fw_mailer_test !== 'undefined' ? fw_mailer_test.nonce : '')},
 						{name: 'to', value: to}
 					];
 

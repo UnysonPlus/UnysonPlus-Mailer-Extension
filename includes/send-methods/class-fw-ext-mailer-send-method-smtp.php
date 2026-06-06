@@ -53,7 +53,7 @@ class FW_Ext_Mailer_Send_Method_SMTP extends FW_Ext_Mailer_Send_Method {
 			'port' => array(
 				'label' => __( 'Custom Port', 'fw' ),
 				'desc'  => __( 'Optional - SMTP port number to use.', 'fw' ),
-				'help'  => __( 'Leave blank for default (SMTP - 25, SMTPS - 465)', 'fw' ),
+				'help'  => __( 'Leave blank for default (SMTP - 25, SMTPS - 465, STARTTLS - 587)', 'fw' ),
 				'type'  => 'text',
 				'attr'  => array(
 					'maxlength' => 5,
@@ -68,12 +68,14 @@ class FW_Ext_Mailer_Send_Method_SMTP extends FW_Ext_Mailer_Send_Method {
 	 * @return array|WP_Error
 	 */
 	public function prepare_settings_options_values($values) {
+		$values = is_array($values) ? $values : array();
+
 		$conf = array(
-			'host'      => trim($values['host']),
-			'username'  => trim($values['username']),
-			'password'  => trim($values['password']),
-			'secure'    => $values['secure'],
-			'port'      => trim($values['port'])
+			'host'      => trim((string) ($values['host'] ?? '')),
+			'username'  => trim((string) ($values['username'] ?? '')),
+			'password'  => trim((string) ($values['password'] ?? '')),
+			'secure'    => (string) ($values['secure'] ?? ''),
+			'port'      => trim((string) ($values['port'] ?? ''))
 		);
 
 		if (empty($conf['username'])) {
@@ -97,21 +99,21 @@ class FW_Ext_Mailer_Send_Method_SMTP extends FW_Ext_Mailer_Send_Method {
 			);
 		}
 
-		if (!in_array($conf['secure'], array('ssl', 'tls'))) {
-			$conf['secure'] = false;
+		if (!in_array($conf['secure'], array('ssl', 'tls'), true)) {
+			$conf['secure'] = '';
 		}
 
 		// in case the port is missing or invalid
 		if (empty($conf['port']) || !is_numeric($conf['port'])) {
 			$conf['port'] = 25;
 
-			if ($conf['secure']) {
-				if ($conf['secure'] === 'ssl') {
-					$conf['port'] = 465;
-				} elseif ($conf['secure'] === 'tls') {
-					$conf['port'] = 587;
-				}
+			if ($conf['secure'] === 'ssl') {
+				$conf['port'] = 465;
+			} elseif ($conf['secure'] === 'tls') {
+				$conf['port'] = 587;
 			}
+		} else {
+			$conf['port'] = (int) $conf['port'];
 		}
 
 		return $conf;
@@ -124,8 +126,20 @@ class FW_Ext_Mailer_Send_Method_SMTP extends FW_Ext_Mailer_Send_Method {
 	 * @return bool|WP_Error
 	 */
 	public function send(FW_Ext_Mailer_Email $email, $settings_options_values, $data = array()) {
-		if (!class_exists('PHPMailer')) {
-			require_once ABSPATH . WPINC . '/class-phpmailer.php';
+		// WP 5.5+ uses namespaced PHPMailer; older WP shipped class-phpmailer.php in wp-includes
+		if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
+			if (file_exists(ABSPATH . WPINC . '/PHPMailer/PHPMailer.php')) {
+				require_once ABSPATH . WPINC . '/PHPMailer/PHPMailer.php';
+				require_once ABSPATH . WPINC . '/PHPMailer/Exception.php';
+				require_once ABSPATH . WPINC . '/PHPMailer/SMTP.php';
+			} elseif (file_exists(ABSPATH . WPINC . '/class-phpmailer.php')) {
+				require_once ABSPATH . WPINC . '/class-phpmailer.php';
+			} else {
+				return new WP_Error(
+					'phpmailer_missing',
+					__('PHPMailer is not available on this WordPress install', 'fw')
+				);
+			}
 		}
 
 		$config = self::prepare_settings_options_values($settings_options_values);
@@ -134,73 +148,76 @@ class FW_Ext_Mailer_Send_Method_SMTP extends FW_Ext_Mailer_Send_Method {
 			return $config;
 		}
 
-		$mailer = new PHPMailer();
+		$mailer_class = class_exists('PHPMailer\\PHPMailer\\PHPMailer')
+			? 'PHPMailer\\PHPMailer\\PHPMailer'
+			: 'PHPMailer';
+
+		// passing true makes PHPMailer throw exceptions instead of returning false
+		$mailer = new $mailer_class(true);
 
 		$mailer->isSMTP();
-		$mailer->IsHTML(true);
+		$mailer->isHTML(true);
 		$mailer->Host       = $config['host'];
 		$mailer->Port       = $config['port'];
-		$mailer->SMTPSecure = $config['secure'];
+		$mailer->SMTPSecure = $config['secure']; // '', 'ssl', or 'tls'
 		$mailer->SMTPAuth   = true;
 		$mailer->Username   = $config['username'];
 		$mailer->Password   = $config['password'];
 		$mailer->CharSet    = 'utf-8';
 
-		if (trim($email->get_from())) {
-			$mailer->From = $email->get_from();
-
-			if (trim($email->get_from_name())) {
-				$mailer->FromName = $email->get_from_name();
+		$from = trim((string) $email->get_from());
+		if ($from === '') {
+			$from = (string) get_option('admin_email');
+		}
+		if ($from !== '') {
+			try {
+				$mailer->setFrom($from, (string) $email->get_from_name());
+			} catch (Exception $e) {
+				return new WP_Error('failed', $e->getMessage());
 			}
 		}
-
-		if (is_array($email->get_to())) {
-			foreach ($email->get_to() as $_address) {
-				$mailer->AddAddress($_address);
-			}
-		} else {
-			$mailer->AddAddress($email->get_to());
-		}
-
-		if (method_exists($email, 'get_reply_to') && $email->get_reply_to()) {
-			if (is_array($email->get_reply_to())) {
-				foreach ($email->get_reply_to() as $_address => $_name) {
-					$mailer->addReplyTo($_address, $_name);
-				}
-			} else {
-				$mailer->addReplyTo($email->get_reply_to());
-			}
-		}
-
-		foreach ($email->get_cc() as $_address => $_name) {
-			$mailer->addCC($_address, $_name);
-		}
-		foreach ($email->get_bcc() as $_address => $_name) {
-			$mailer->addBCC($_address, $_name);
-		}
-
-		$mailer->Subject = $email->get_subject();
-		$mailer->Body    = $email->get_body();
-
-		//$mailer->SMTPDebug = true;
 
 		try {
+			$to = $email->get_to();
+			if (is_array($to)) {
+				foreach ($to as $_address) {
+					$mailer->addAddress($_address);
+				}
+			} else {
+				$mailer->addAddress($to);
+			}
+
+			$reply_to = method_exists($email, 'get_reply_to') ? $email->get_reply_to() : '';
+			if (!empty($reply_to)) {
+				if (is_array($reply_to)) {
+					foreach ($reply_to as $_address => $_name) {
+						$mailer->addReplyTo($_address, (string) $_name);
+					}
+				} else {
+					$mailer->addReplyTo($reply_to);
+				}
+			}
+
+			foreach ($email->get_cc() as $_address => $_name) {
+				$mailer->addCC($_address, (string) $_name);
+			}
+			foreach ($email->get_bcc() as $_address => $_name) {
+				$mailer->addBCC($_address, (string) $_name);
+			}
+
+			$mailer->Subject = (string) $email->get_subject();
+			$mailer->Body    = (string) $email->get_body();
+
 			return $mailer->send()
 				? true
 				: new WP_Error(
 					'failed',
 					__('Could not send the email', 'fw')
 				);
-		} catch (phpmailerException $e) {
-			return new WP_Error(
-				'failed',
-				$e->errorMessage()
-			);
+		} catch (\PHPMailer\PHPMailer\Exception $e) {
+			return new WP_Error('failed', $e->errorMessage());
 		} catch (Exception $e) {
-			return new WP_Error(
-				'failed',
-				$e->getMessage()
-			);
+			return new WP_Error('failed', $e->getMessage());
 		}
 	}
 }

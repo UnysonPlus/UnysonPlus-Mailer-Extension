@@ -146,6 +146,16 @@ class FW_Option_Type_Mailer extends FW_Option_Type {
 			array( 'fw-events' ),
 			fw()->manifest->get_version(), true
 		);
+
+		// Expose a per-page nonce so the JS can POST it with the test-connection
+		// AJAX request. Server-side check is in `_action_ajax_test_connection`.
+		wp_localize_script(
+			$this->get_type() . '-scripts',
+			'fw_mailer_test',
+			array(
+				'nonce' => wp_create_nonce( 'fw_ext_mailer_test_connection' ),
+			)
+		);
 	}
 
 	/**
@@ -156,7 +166,7 @@ class FW_Option_Type_Mailer extends FW_Option_Type {
 			$data['value'] = fw_db_option_storage_load($id, $option, $data['value']);
 		}
 
-		$wrapper_attr = $option['attr'];
+		$wrapper_attr = isset($option['attr']) && is_array($option['attr']) ? $option['attr'] : array();
 		unset($wrapper_attr['name'], $wrapper_attr['value']);
 
 		return
@@ -185,6 +195,10 @@ class FW_Option_Type_Mailer extends FW_Option_Type {
 	 * @internal
 	 */
 	public function _action_ajax_test_connection() {
+		// CSRF protection — die immediately on missing/invalid nonce.
+		// Nonce is created in `_enqueue_static` and sent by the JS in scripts.js.
+		check_ajax_referer( 'fw_ext_mailer_test_connection', '_nonce' );
+
 		if (!current_user_can('edit_posts')) {
 			return wp_send_json_error(new WP_Error('forbidden', __('Forbidden', 'fw')));
 		} elseif (!is_email($to = FW_Request::POST('to'))) {

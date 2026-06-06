@@ -19,10 +19,10 @@ class FW_Ext_Mailer_Email {
 
 	public function __construct() {
 		$this->set_from_name(
-			fw_ext('mailer')->get_db_settings_option('general/from_name')
+			(string) fw_ext('mailer')->get_db_settings_option('general/from_name')
 		);
 		$this->set_from(
-			fw_ext('mailer')->get_db_settings_option('general/from_address')
+			(string) fw_ext('mailer')->get_db_settings_option('general/from_address')
 		);
 	}
 
@@ -48,7 +48,7 @@ class FW_Ext_Mailer_Email {
 
 	public function set_to($to) {
 		if (!is_array($to)) {
-			$to = explode(',', $to);
+			$to = explode(',', (string) $to);
 		}
 
 		$this->to = $to;

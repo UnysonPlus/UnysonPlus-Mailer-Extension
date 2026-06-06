@@ -50,7 +50,11 @@ class FW_Extension_Mailer extends FW_Extension
 			$settings = $this->get_db_settings_option();
 		}
 
-		$send_method = $this->get_send_method($settings['method']);
+		if (!is_array($settings)) {
+			$settings = array();
+		}
+
+		$send_method = $this->get_send_method($settings['method'] ?? '');
 
 		if (!$send_method) {
 			return array(
@@ -117,7 +121,7 @@ class FW_Extension_Mailer extends FW_Extension
 	{
 		if (is_null($this->is_configured_cache)) {
 			$send_method = $this->get_send_method(
-				$this->get_db_settings_option('method')
+				(string) $this->get_db_settings_option('method')
 			);
 
 			if ($send_method) {
