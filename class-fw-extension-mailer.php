@@ -29,7 +29,7 @@ class FW_Extension_Mailer extends FW_Extension
 	{
 		wp_enqueue_script(
 			'fw_option_email_settings',
-			$this->get_uri('/static/js/scripts.js'),
+			fw_min_uri($this->get_uri('/static/js/scripts.js')),
 			array('jquery'),
 			false,
 			true

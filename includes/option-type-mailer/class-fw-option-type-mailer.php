@@ -137,12 +137,12 @@ class FW_Option_Type_Mailer extends FW_Option_Type {
 	protected function _enqueue_static( $id, $option, $data ) {
 		wp_enqueue_style(
 			$this->get_type() . '-scripts',
-			fw_ext( 'mailer' )->get_uri() . '/includes/option-type-mailer/static/css/style.css'
+			fw_min_uri( fw_ext( 'mailer' )->get_uri() . '/includes/option-type-mailer/static/css/style.css' )
 		);
 
 		wp_enqueue_script(
 			$this->get_type() . '-scripts',
-			fw_ext( 'mailer' )->get_uri() . '/includes/option-type-mailer/static/js/scripts.js',
+			fw_min_uri( fw_ext( 'mailer' )->get_uri() . '/includes/option-type-mailer/static/js/scripts.js' ),
 			array( 'fw-events' ),
 			fw()->manifest->get_version(), true
 		);
