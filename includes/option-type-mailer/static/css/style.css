@@ -4,22 +4,25 @@
 
 /* test connection */
 
+/* Modernized: display:table/table-row/table-cell -> flexbox. The first cell
+   fills (flex:1), the last cell shrinks to its content (flex:0 0 auto, the
+   modern equivalent of the old `width:1px` shrink trick), both vertically
+   centered via align-items. */
 .fw-backend-option-type-mailer .test-connection {
-	display: table;
 	width: 100%;
 }
 
 .fw-backend-option-type-mailer .test-connection > div {
-	display: table-row;
+	display: flex;
+	align-items: center;
 }
 
 .fw-backend-option-type-mailer .test-connection > div > div {
-	display: table-cell;
-	vertical-align: middle;
+	flex: 1 1 auto;
 }
 
 .fw-backend-option-type-mailer .test-connection > div > div:last-child {
-	width: 1px;
+	flex: 0 0 auto;
 	padding-left: 10px;
 }
 
