@@ -208,6 +208,14 @@ class FW_Ext_Mailer_Send_Method_SMTP extends FW_Ext_Mailer_Send_Method {
 			$mailer->Subject = (string) $email->get_subject();
 			$mailer->Body    = (string) $email->get_body();
 
+			if (method_exists($email, 'get_attachments')) {
+				foreach ($email->get_attachments() as $attachment) {
+					if (is_string($attachment) && is_file($attachment)) {
+						$mailer->addAttachment($attachment);
+					}
+				}
+			}
+
 			return $mailer->send()
 				? true
 				: new WP_Error(

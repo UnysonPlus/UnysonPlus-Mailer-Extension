@@ -77,11 +77,14 @@ class FW_Ext_Mailer_Send_Method_WPMail extends FW_Ext_Mailer_Send_Method {
                         $headers[] = 'Bcc:'. $this->make_email_header($_address, $_name);
                 }
 
+                $attachments = method_exists($email, 'get_attachments') ? $email->get_attachments() : array();
+
                 $result = wp_mail(
                         $email->get_to(),
                         (string) $email->get_subject(),
                         (string) $email->get_body(),
-                        $headers
+                        $headers,
+                        $attachments
                 );
 
                 return $result

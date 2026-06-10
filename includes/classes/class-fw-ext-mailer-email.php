@@ -17,6 +17,12 @@ class FW_Ext_Mailer_Email {
 	 */
 	protected $reply_to = '';
 
+	/**
+	 * Absolute file paths to attach to the email.
+	 * @var array
+	 */
+	protected $attachments = array();
+
 	public function __construct() {
 		$this->set_from_name(
 			(string) fw_ext('mailer')->get_db_settings_option('general/from_name')
@@ -118,5 +124,28 @@ class FW_Ext_Mailer_Email {
 	 */
 	public function get_bcc() {
 		return $this->bcc;
+	}
+
+	/**
+	 * @param string $file_path Absolute path to an existing, readable file.
+	 */
+	public function add_attachment($file_path) {
+		if ( is_string($file_path) && $file_path !== '' ) {
+			$this->attachments[] = $file_path;
+		}
+	}
+
+	/**
+	 * @param array $attachments List of absolute file paths.
+	 */
+	public function set_attachments($attachments) {
+		$this->attachments = array_values( array_filter( (array) $attachments, 'is_string' ) );
+	}
+
+	/**
+	 * @return array List of absolute file paths.
+	 */
+	public function get_attachments() {
+		return $this->attachments;
 	}
 }

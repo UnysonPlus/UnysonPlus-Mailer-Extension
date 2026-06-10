@@ -92,6 +92,9 @@ class FW_Extension_Mailer extends FW_Extension
 				$email->add_bcc($_address, $_name);
 			}
 		}
+		if (!empty($data['attachments']) && method_exists($email, 'set_attachments')) {
+			$email->set_attachments($data['attachments']);
+		}
 
 		/** @since 1.2.10 */
 		$email = apply_filters('fw_ext_mailer_before_send', $email);
