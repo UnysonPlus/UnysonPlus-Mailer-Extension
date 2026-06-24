@@ -61,13 +61,13 @@
 							);
 						} else {
 							try {
-								alert(r.data[0].message);
+								fw.notify(r.data[0].message, 'error');
 							} catch (e) {
-								alert('Request failed');
+								fw.notify('Request failed', 'error');
 							}
 						}
 					}).fail(function (jqXHR, textStatus, errorThrown) {
-						alert('AJAX error: '+ String(errorThrown));
+						fw.notify('AJAX error: '+ String(errorThrown), 'error');
 					}).always(function () {
 						setTimeout(function () { // prevent user to click too often
 							$button.removeAttr('disabled');
