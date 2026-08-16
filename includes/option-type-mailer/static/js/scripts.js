@@ -14,7 +14,7 @@
 
 				$option.on('click', '.test-connection button', function(){
 					var $to = $option.find('.test-connection input[type="email"]:first'),
-						to = $.trim($to.val());
+						to = ( $to.val() || '' ).trim();
 
 					if (!to.length) {
 						return $to.focus();
