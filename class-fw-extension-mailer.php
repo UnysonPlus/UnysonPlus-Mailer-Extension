@@ -96,7 +96,11 @@ class FW_Extension_Mailer extends FW_Extension
 			$email->set_attachments($data['attachments']);
 		}
 
-		/** @since 1.2.10 */
+		/**
+		 * Filters the email object just before it is dispatched by the mailer send method.
+		 *
+		 * @since 1.2.10
+		 */
 		$email = apply_filters('fw_ext_mailer_before_send', $email);
 
 		$result = $send_method->send(
@@ -148,6 +152,7 @@ class FW_Extension_Mailer extends FW_Extension
 			require_once dirname(__FILE__) . '/includes/classes/class-fw-ext-mailer-send-method.php';
 
 			$this->send_methods = array();
+			/** Filters the available mailer send methods, letting listeners register additional delivery backends. */
 			foreach (apply_filters('fw_ext_mailer_send_methods', array()) as $send_method) {
 				$this->send_methods[ $send_method->get_id() ] = $send_method;
 			}
