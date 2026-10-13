@@ -54,7 +54,7 @@ class FW_Extension_Mailer extends FW_Extension
 			$settings = array();
 		}
 
-		$send_method = $this->get_send_method($settings['method'] ?? '');
+		$send_method = $this->get_send_method($this->method_or_default($settings['method'] ?? ''));
 
 		if (!$send_method) {
 			return array(
@@ -128,7 +128,7 @@ class FW_Extension_Mailer extends FW_Extension
 	{
 		if (is_null($this->is_configured_cache)) {
 			$send_method = $this->get_send_method(
-				(string) $this->get_db_settings_option('method')
+				$this->method_or_default((string) $this->get_db_settings_option('method'))
 			);
 
 			if ($send_method) {
@@ -143,6 +143,21 @@ class FW_Extension_Mailer extends FW_Extension
 		}
 
 		return $this->is_configured_cache;
+	}
+
+	/**
+	 * A site or form that never chose a send method uses WordPress mail, which needs no settings,
+	 * so a new site's forms can send instead of failing with "Invalid send method".
+	 *
+	 * @param string $method_id
+	 * @return string
+	 */
+	private function method_or_default($method_id)
+	{
+		$method_id = (string) $method_id;
+
+		/** Filters the send method used when none has been chosen (default: WordPress mail). */
+		return $method_id !== '' ? $method_id : (string) apply_filters('fw_ext_mailer_default_method', 'wpmail');
 	}
 
 	public function get_send_methods()
